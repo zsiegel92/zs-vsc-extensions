@@ -1,11 +1,12 @@
 {
   "name": "zs-vsc-exts",
+  "displayName": "ZS VS Code Extensions",
+  "description": "Move files to gitignored folders",
+  "publisher": "zsiegel",
   "repository": "https://github.com/zsiegel92/zs-vsc-extensions.git",
-  "displayName": "zs-vsc-exts",
-  "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "*"
+    "vscode": "^1.99.0"
   },
   "categories": [
     "Other"
@@ -14,8 +15,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "extension.moveToScratchpad",
-        "title": "Move to Scratchpad"
+        "command": "extension.moveToGitignored",
+        "title": "Move to Gitignored Folder"
       }
     ]
   },
@@ -31,7 +32,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/vscode": "^1.106.1",
+    "@types/vscode": "1.99.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
