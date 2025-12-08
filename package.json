@@ -1,5 +1,6 @@
 {
   "name": "zs-vsc-exts",
+  "repository": "https://github.com/zsiegel92/zs-vsc-extensions.git",
   "displayName": "zs-vsc-exts",
   "description": "",
   "version": "0.0.1",
