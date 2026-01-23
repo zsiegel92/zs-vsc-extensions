@@ -17,6 +17,10 @@
       {
         "command": "extension.moveToGitignored",
         "title": "Move to Gitignored Folder"
+      },
+      {
+        "command": "extension.diffWithGraphiteParent",
+        "title": "Diff with Graphite Parent Branch"
       }
     ]
   },

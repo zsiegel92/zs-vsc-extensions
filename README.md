@@ -1,19 +1,49 @@
 # ZS VS Code Extensions
 
-A VS Code extension that lets you quickly move the current file to a gitignored folder.
+A collection of VS Code utilities for file management and Git workflows.
 
-## Features
+## Commands
 
-- **Move to Gitignored Folder** - Move the active file to any directory listed in your `.gitignore`
+### Move to Gitignored Folder
+
+Move the active file to any directory listed in your `.gitignore`.
+
 - Browse into subfolders of gitignored directories with an interactive picker
 - Navigate up/down the folder tree before selecting a destination
 
-## Usage
-
+**Usage:**
 1. Open the file you want to move
-2. Run the command `Move to Gitignored Folder` from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Run `Move to Gitignored Folder` from the Command Palette
 3. Select a gitignored folder (or navigate into its subfolders)
 4. The file is moved and reopened at its new location
+
+### Diff with Graphite Parent Branch
+
+Compare the current file against its version in the Graphite parent branch.
+
+**Usage:**
+1. Open any file tracked in Git
+2. Run `Diff with Graphite Parent Branch` from the Command Palette
+3. A diff view opens showing changes between the parent branch and your current version
+
+**Requirements:** [Graphite CLI](https://graphite.dev/) must be installed.
+
+## Keyboard Shortcuts
+
+These commands can be bound to keyboard shortcuts. Open your keybindings.json (`Cmd+K Cmd+S` → click the file icon in the top right) and add:
+
+```json
+{
+  "key": "ctrl+shift+m",
+  "command": "extension.moveToGitignored",
+  "when": "editorTextFocus"
+},
+{
+  "key": "ctrl+shift+d",
+  "command": "extension.diffWithGraphiteParent",
+  "when": "editorTextFocus"
+}
+```
 
 ## Installation
 
@@ -27,8 +57,8 @@ code --install-extension zs-vsc-exts-0.0.1.vsix
 
 ## Requirements
 
-- A workspace with a `.gitignore` file
-- At least one gitignored directory that exists on disk
+- A workspace with a `.gitignore` file (for Move to Gitignored)
+- Graphite CLI installed (for Diff with Graphite Parent)
 
 ## License
 

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { exec } from 'child_process';
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
   folderPath: string;
@@ -224,6 +225,95 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(disposable);
+
+  const diffWithGraphiteParent = vscode.commands.registerCommand(
+    'extension.diffWithGraphiteParent',
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active file to diff.');
+        return;
+      }
+
+      const fileUri = editor.document.uri;
+      if (fileUri.scheme !== 'file') {
+        vscode.window.showErrorMessage('Current document is not a file on disk.');
+        return;
+      }
+
+      const filePath = fileUri.fsPath;
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
+
+      if (!workspaceFolder) {
+        vscode.window.showErrorMessage('File is not inside a workspace folder.');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolder.uri.fsPath;
+      const relativePath = path.relative(workspaceRoot, filePath);
+
+      try {
+        const baseRef = await new Promise<string>((resolve, reject) => {
+          exec('gt trunk', { cwd: workspaceRoot }, (error, stdout, stderr) => {
+            if (error) {
+              exec('gt log --oneline -n 2', { cwd: workspaceRoot }, (error2, stdout2) => {
+                if (error2) {
+                  reject(new Error('Failed to get Graphite parent branch. Is Graphite installed?'));
+                  return;
+                }
+                const lines = stdout2.trim().split('\n');
+                if (lines.length >= 2) {
+                  const match = lines[1].match(/^([a-f0-9]+)/);
+                  if (match) {
+                    resolve(match[1]);
+                    return;
+                  }
+                }
+                reject(new Error('Could not determine parent commit'));
+              });
+              return;
+            }
+            const trunk = stdout.trim();
+            exec(`git merge-base HEAD ${trunk}`, { cwd: workspaceRoot }, (error2, stdout2) => {
+              if (error2) {
+                reject(new Error('Failed to find merge base'));
+                return;
+              }
+              resolve(stdout2.trim());
+            });
+          });
+        });
+
+        const parentContent = await new Promise<string>((resolve, reject) => {
+          exec(`git show ${baseRef}:${relativePath}`, { cwd: workspaceRoot }, (error, stdout) => {
+            if (error) {
+              resolve('');
+              return;
+            }
+            resolve(stdout);
+          });
+        });
+
+        const basename = path.basename(filePath);
+        const tmpPath = path.join(require('os').tmpdir(), `__graphite_parent__${basename}`);
+        fs.writeFileSync(tmpPath, parentContent);
+
+        const leftUri = vscode.Uri.file(tmpPath);
+        const rightUri = fileUri;
+
+        await vscode.commands.executeCommand(
+          'vscode.diff',
+          leftUri,
+          rightUri,
+          `${basename} (parent) ↔ ${basename} (HEAD)`
+        );
+      } catch (err: any) {
+        vscode.window.showErrorMessage(err.message ?? String(err));
+      }
+    }
+  );
+
+  context.subscriptions.push(diffWithGraphiteParent);
 }
 
 export function deactivate() {}
