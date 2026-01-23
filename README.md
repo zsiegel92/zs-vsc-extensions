@@ -48,10 +48,22 @@ These commands can be bound to keyboard shortcuts. Open your keybindings.json (`
 ## Installation
 
 ```sh
-# From source
+# Build from source
 pnpm install
 pnpm run compile
 pnpm run package
+```
+
+Then install the `.vsix` file:
+
+**Via VS Code UI:**
+1. Open the Extensions view (`Cmd+Shift+X`)
+2. Click the `...` menu (top right of the Extensions sidebar)
+3. Select **Install from VSIX...**
+4. Navigate to and select `zs-vsc-exts-0.0.1.vsix`
+
+**Via command line:**
+```sh
 code --install-extension zs-vsc-exts-0.0.1.vsix
 ```
 
