@@ -8,6 +8,25 @@ interface FolderQuickPickItem extends vscode.QuickPickItem {
   isBack?: boolean;
 }
 
+interface GitHead {
+  name?: string;
+}
+
+interface GitRepository {
+  rootUri: vscode.Uri;
+  state: {
+    HEAD?: GitHead;
+  };
+}
+
+interface GitApi {
+  repositories: GitRepository[];
+}
+
+interface GitExtensionExports {
+  getAPI(version: 1): GitApi;
+}
+
 function parseGitignore(workspaceRoot: string): string[] {
   const gitignorePath = path.join(workspaceRoot, '.gitignore');
   if (!fs.existsSync(gitignorePath)) {
@@ -57,6 +76,70 @@ function getSubfolders(dirPath: string): string[] {
   return entries
     .filter(e => e.isDirectory())
     .map(e => path.join(dirPath, e.name));
+}
+
+async function getGitApi(): Promise<GitApi | undefined> {
+  const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
+  if (!gitExtension) {
+    return undefined;
+  }
+
+  const exports = gitExtension.isActive ? gitExtension.exports : await gitExtension.activate();
+  return exports?.getAPI(1);
+}
+
+type RepositoryContext =
+  | {
+      root: string;
+      branchName?: string;
+      repositorySource: 'git extension API';
+      workspaceSource: 'active editor' | 'first detected repository';
+    }
+  | {
+      root: string;
+      branchName?: string;
+      repositorySource: 'workspace';
+      workspaceSource: 'active editor' | 'first workspace folder';
+    };
+
+async function getRepositoryContextWithSource(): Promise<RepositoryContext | undefined> {
+  const activeFilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
+  const gitApi = await getGitApi();
+
+  if (gitApi?.repositories.length) {
+    const repository =
+      activeFilePath
+        ? gitApi.repositories.find(repo => {
+            const repoRoot = repo.rootUri.fsPath;
+            return activeFilePath === repoRoot || activeFilePath.startsWith(`${repoRoot}${path.sep}`);
+          })
+        : undefined;
+
+    const selectedRepository = repository ?? gitApi.repositories[0];
+    if (selectedRepository) {
+      return {
+        root: selectedRepository.rootUri.fsPath,
+        branchName: selectedRepository.state.HEAD?.name,
+        repositorySource: 'git extension API',
+        workspaceSource: repository ? 'active editor' : 'first detected repository',
+      };
+    }
+  }
+
+  const workspaceFolder =
+    activeFilePath
+      ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(activeFilePath))
+      : vscode.workspace.workspaceFolders?.[0];
+
+  if (!workspaceFolder) {
+    return undefined;
+  }
+
+  return {
+    root: workspaceFolder.uri.fsPath,
+    repositorySource: 'workspace',
+    workspaceSource: activeFilePath ? 'active editor' : 'first workspace folder',
+  };
 }
 
 async function showFolderPicker(
@@ -318,39 +401,41 @@ export function activate(context: vscode.ExtensionContext) {
   const copyCurrentBranchName = vscode.commands.registerCommand(
     'extension.copyCurrentBranchName',
     async () => {
-      const editor = vscode.window.activeTextEditor;
-      const workspaceFolder =
-        editor
-          ? vscode.workspace.getWorkspaceFolder(editor.document.uri)
-          : vscode.workspace.workspaceFolders?.[0];
-
-      if (!workspaceFolder) {
-        vscode.window.showErrorMessage('Open a workspace folder to copy the current branch name.');
+      const repositoryContext = await getRepositoryContextWithSource();
+      if (!repositoryContext) {
+        vscode.window.showErrorMessage('Open a Git repository or workspace folder to copy the current branch name.');
         return;
       }
 
-      const workspaceRoot = workspaceFolder.uri.fsPath;
-
       try {
-        const branchName = await new Promise<string>((resolve, reject) => {
-          exec('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot }, (error, stdout) => {
-            if (error) {
-              reject(new Error('Failed to determine the current Git branch.'));
-              return;
-            }
+        const usedBranchSource = repositoryContext.branchName ? 'git extension API' : 'git CLI';
+        const branchName =
+          repositoryContext.branchName ??
+          await new Promise<string>((resolve, reject) => {
+            exec(
+              'git rev-parse --abbrev-ref HEAD',
+              { cwd: repositoryContext.root },
+              (error, stdout) => {
+                if (error) {
+                  reject(new Error('Failed to determine the current Git branch.'));
+                  return;
+                }
 
-            const name = stdout.trim();
-            if (!name) {
-              reject(new Error('Git returned an empty branch name.'));
-              return;
-            }
+                const name = stdout.trim();
+                if (!name) {
+                  reject(new Error('Git returned an empty branch name.'));
+                  return;
+                }
 
-            resolve(name);
+                resolve(name);
+              }
+            );
           });
-        });
 
         await vscode.env.clipboard.writeText(branchName);
-        vscode.window.showInformationMessage(`Copied branch name: ${branchName}`);
+        vscode.window.showInformationMessage(
+          `Copied branch name: ${branchName} (${repositoryContext.repositorySource}, ${repositoryContext.workspaceSource}, ${usedBranchSource})`
+        );
       } catch (err: any) {
         vscode.window.showErrorMessage(err.message ?? String(err));
       }
