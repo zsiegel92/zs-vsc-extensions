@@ -314,6 +314,50 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(diffWithGraphiteParent);
+
+  const copyCurrentBranchName = vscode.commands.registerCommand(
+    'extension.copyCurrentBranchName',
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      const workspaceFolder =
+        editor
+          ? vscode.workspace.getWorkspaceFolder(editor.document.uri)
+          : vscode.workspace.workspaceFolders?.[0];
+
+      if (!workspaceFolder) {
+        vscode.window.showErrorMessage('Open a workspace folder to copy the current branch name.');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolder.uri.fsPath;
+
+      try {
+        const branchName = await new Promise<string>((resolve, reject) => {
+          exec('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot }, (error, stdout) => {
+            if (error) {
+              reject(new Error('Failed to determine the current Git branch.'));
+              return;
+            }
+
+            const name = stdout.trim();
+            if (!name) {
+              reject(new Error('Git returned an empty branch name.'));
+              return;
+            }
+
+            resolve(name);
+          });
+        });
+
+        await vscode.env.clipboard.writeText(branchName);
+        vscode.window.showInformationMessage(`Copied branch name: ${branchName}`);
+      } catch (err: any) {
+        vscode.window.showErrorMessage(err.message ?? String(err));
+      }
+    }
+  );
+
+  context.subscriptions.push(copyCurrentBranchName);
 }
 
 export function deactivate() {}

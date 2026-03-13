@@ -28,6 +28,15 @@ Compare the current file against its version in the Graphite parent branch.
 
 **Requirements:** [Graphite CLI](https://graphite.dev/) must be installed.
 
+### Copy Current Branch Name to Clipboard
+
+Copy the current Git branch name for the active workspace to the system clipboard.
+
+**Usage:**
+1. Open any file in your repo, or focus the workspace
+2. Run `Copy Current Branch Name to Clipboard` from the Command Palette
+3. The current branch name is copied to your clipboard
+
 ## Keyboard Shortcuts
 
 These commands can be bound to keyboard shortcuts. Open your keybindings.json (`Cmd+K Cmd+S` → click the file icon in the top right) and add:
@@ -42,6 +51,10 @@ These commands can be bound to keyboard shortcuts. Open your keybindings.json (`
   "key": "ctrl+shift+d",
   "command": "extension.diffWithGraphiteParent",
   "when": "editorTextFocus"
+},
+{
+  "key": "cmd+k cmd+shift+c",
+  "command": "extension.copyCurrentBranchName"
 }
 ```
 
@@ -71,6 +84,7 @@ code --install-extension zs-vsc-exts-0.0.1.vsix
 
 - A workspace with a `.gitignore` file (for Move to Gitignored)
 - Graphite CLI installed (for Diff with Graphite Parent)
+- A Git repository (for Copy Current Branch Name to Clipboard)
 
 ## License
 

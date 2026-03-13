@@ -21,6 +21,17 @@
       {
         "command": "extension.diffWithGraphiteParent",
         "title": "Diff with Graphite Parent Branch"
+      },
+      {
+        "command": "extension.copyCurrentBranchName",
+        "title": "Copy Current Branch Name to Clipboard"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "extension.copyCurrentBranchName",
+        "key": "cmd+k cmd+shift+c",
+        "mac": "cmd+k cmd+shift+c"
       }
     ]
   },
