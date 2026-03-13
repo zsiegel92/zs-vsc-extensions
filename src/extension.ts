@@ -434,7 +434,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         await vscode.env.clipboard.writeText(branchName);
         vscode.window.showInformationMessage(
-          `Copied branch name: ${branchName} (${repositoryContext.repositorySource}, ${repositoryContext.workspaceSource}, ${usedBranchSource})`
+          `Copied branch name: ${branchName} | repo source: ${repositoryContext.repositorySource} | selection source: ${repositoryContext.workspaceSource} | branch source: ${usedBranchSource}`
         );
       } catch (err: any) {
         vscode.window.showErrorMessage(err.message ?? String(err));
